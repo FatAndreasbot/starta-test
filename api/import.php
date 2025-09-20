@@ -11,9 +11,24 @@ class DB_Entry
     var $reviews_count;
     var $created_at;
     var $image;
-
     function __construct(array $data)
     {
+        // isnull validation
+        if ($data["id"] === null) {throw new Exception("field id does not exists", 400);}
+        if ($data["name"] === null) {throw new Exception("field name does not exists", 400);}
+        if ($data["category"] === null) {throw new Exception("field category does not exists", 400);}
+        if ($data["price"] === null) {throw new Exception("field price does not exists", 400);}
+        if ($data["stock"] === null) {throw new Exception("field stock does not exists", 400);}
+        if ($data["rating"] === null) {throw new Exception("field rating does not exists", 400);}
+        if ($data["created_at"] === null) {throw new Exception("field created_at does not exists", 400);}
+        // datatype validation
+        if (!is_numeric($data["id"])) throw new Exception("field id field is not a number", 400);
+        if (!is_numeric($data["price"])) throw new Exception("field price field is not a number", 400);
+        if (!is_numeric($data["stock"])) throw new Exception("field stock field is not a number", 400);
+        if (!is_numeric($data["rating"]) ) throw new Exception("field rating field is not a number", 400);
+        if (!is_numeric($data["reviews_count"])) throw new Exception("field reviews_count field is not a number", 400);
+        if (isValidISO8601Date($data["created_at"]) === false) throw new Exception("field created_at is not a valid string", 400);
+
         $this->id = $data["id"];
         $this->name = $data["name"];
         $this->category = $data["category"];
@@ -21,9 +36,41 @@ class DB_Entry
         $this->stock = $data["stock"];
         $this->rating = $data["rating"];
         $this->reviews_count = $data["reviews_count"];
-        $this->created_at = $data["created_at"];
+        $this->created_at = getISO8601Date($data["created_at"]);
         $this->image = $data["image"];
     }
+}
+
+function getISO8601Date($value){
+    $dateTime = \DateTime::createFromFormat(\DateTime::ATOM, $value);
+    if ($dateTime) {
+        return $value;
+    }
+    $dateTime = \DateTime::createFromFormat("Y-m-d", $value);
+    return \DateTime::createFromFormat("Y-m-d", $value)->format(\DateTime::ATOM);
+}
+
+function isValidISO8601Date($value)
+{
+    if (!is_string($value)) {
+        return false;
+    }
+
+    $dateTime = \DateTime::createFromFormat(\DateTime::ATOM, $value);
+
+
+    //ISO 8601
+    if ($dateTime) {
+        return $dateTime->format(\DateTime::ATOM) === $value;
+    }
+    $dateTime = \DateTime::createFromFormat("Y-m-d", $value);
+
+    // loose datetime format
+    if ($dateTime) {
+        return $dateTime->format("Y-m-d") === $value;
+    }
+
+    return false;
 }
 
 function storeNewEntry(DB_Entry $entry)
@@ -49,7 +96,7 @@ function storeNewEntry(DB_Entry $entry)
     $ret = $db->exec($sql);
     if ($ret === false) {
         $err_msg = $db->lastErrorMsg();
-        throw new Exception($err_msg);
+        throw new Exception($err_msg, 500);
     }
 }
 

@@ -20,7 +20,7 @@ switch ($subrequest) {
         try {
             echo PostResponse();
         } catch (Exception $e) {
-            http_response_code(500);
+            http_response_code($e->getCode() > 300 ? $e->getCode() : 500);
             echo json_encode(array("msg" => $e->getMessage()));
         }
         break;
